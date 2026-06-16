@@ -1,137 +1,19 @@
 <?php
 /**
- * Capture emails from WooCommerce draft orders.
+ * On-demand sync only — no WordPress or WooCommerce hooks registered.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-class DOEC_Capture {
-
-	/** @var DOEC_Capture|null */
-	private static $instance = null;
+class DOEC_Sync {
 
 	/** @var string[] */
 	private const DRAFT_STATUSES = array( 'checkout-draft', 'draft' );
 
-	/** @var string[] */
-	private const ABANDONED_STATUSES = array( 'checkout-draft', 'draft', 'pending', 'failed', 'cancelled' );
-
-	public static function instance(): DOEC_Capture {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
-
-	private function __construct() {
-		if ( ! DOEC_Settings::is_auto_capture_enabled() ) {
-			return;
-		}
-
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'maybe_capture_from_order' ), 20, 2 );
-		add_action( 'woocommerce_store_api_checkout_update_order_meta', array( $this, 'maybe_capture_from_order_object' ), 20, 1 );
-		add_action( 'woocommerce_update_order', array( $this, 'on_order_updated' ), 20, 2 );
-		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 10, 4 );
-		add_action( 'doec_sync_draft_orders', array( $this, 'sync_recent_drafts' ) );
-	}
-
 	/**
-	 * Classic checkout hook.
-	 *
-	 * @param int   $order_id Order ID.
-	 * @param array $data     Posted checkout data.
-	 */
-	public function maybe_capture_from_order( int $order_id, array $data ): void {
-		$order = wc_get_order( $order_id );
-		if ( $order ) {
-			$this->capture_order_if_draft( $order );
-		}
-	}
-
-	/**
-	 * Block checkout hook.
-	 *
-	 * @param WC_Order $order Order object.
-	 */
-	public function maybe_capture_from_order_object( WC_Order $order ): void {
-		$this->capture_order_if_draft( $order );
-	}
-
-	/**
-	 * @param int      $order_id Order ID.
-	 * @param WC_Order $order    Order object.
-	 */
-	public function on_order_updated( int $order_id, WC_Order $order ): void {
-		if ( $this->is_draft_status( $order->get_status() ) ) {
-			$this->capture_order_if_draft( $order );
-			return;
-		}
-
-		if ( $order->is_paid() || in_array( $order->get_status(), array( 'processing', 'completed', 'on-hold' ), true ) ) {
-			DOEC_Database::instance()->mark_converted_by_order( $order_id );
-		}
-	}
-
-	/**
-	 * @param int      $order_id   Order ID.
-	 * @param string   $old_status Old status.
-	 * @param string   $new_status New status.
-	 * @param WC_Order $order      Order object.
-	 */
-	public function on_status_changed( int $order_id, string $old_status, string $new_status, WC_Order $order ): void {
-		if ( $this->is_draft_status( $new_status ) ) {
-			$this->capture_order_if_draft( $order );
-			return;
-		}
-
-		if ( $this->is_draft_status( $old_status ) && ! $this->is_draft_status( $new_status ) ) {
-			if ( in_array( $new_status, array( 'pending', 'processing', 'completed', 'on-hold' ), true ) || $order->is_paid() ) {
-				DOEC_Database::instance()->mark_converted_by_order( $order_id );
-				return;
-			}
-
-			$this->capture_from_order( $order, 'abandoned' );
-		}
-	}
-
-	/**
-	 * Hourly cron: sync recent draft orders only.
-	 */
-	public function sync_recent_drafts(): void {
-		if ( ! function_exists( 'wc_get_orders' ) ) {
-			return;
-		}
-
-		$page     = 1;
-		$per_page = 200;
-
-		$query = wc_get_orders(
-			array(
-				'status'   => self::DRAFT_STATUSES,
-				'limit'    => $per_page,
-				'page'     => $page,
-				'orderby'  => 'date',
-				'order'    => 'DESC',
-				'paginate' => true,
-				'return'   => 'objects',
-			)
-		);
-
-		if ( empty( $query->orders ) ) {
-			return;
-		}
-
-		foreach ( $query->orders as $order ) {
-			$this->capture_order_if_draft( $order );
-		}
-	}
-
-	/**
-	 * Full sync for admin: scan all draft + unpaid abandoned orders.
-	 *
 	 * @return array{scanned: int, captured: int, skipped_no_email: int}
 	 */
-	public function sync_all_drafts(): array {
+	public static function run_full_sync(): array {
 		if ( ! function_exists( 'wc_get_orders' ) ) {
 			return array(
 				'scanned'          => 0,
@@ -162,9 +44,8 @@ class DOEC_Capture {
 		);
 		$stats['scanned'] = isset( $draft_total->total ) ? (int) $draft_total->total : 0;
 
-		$order_ids = $this->get_order_ids_with_email_sql( self::DRAFT_STATUSES );
+		$order_ids = self::get_order_ids_with_email_sql( self::DRAFT_STATUSES );
 
-		// Fallback: paginate through every draft if SQL found nothing (unusual DB setup).
 		if ( empty( $order_ids ) && $stats['scanned'] > 0 ) {
 			$page     = 1;
 			$per_page = 200;
@@ -187,7 +68,7 @@ class DOEC_Capture {
 				}
 
 				foreach ( $query->orders as $order ) {
-					if ( $this->capture_order_if_draft( $order ) ) {
+					if ( self::capture_from_order( $order, 'abandoned' ) ) {
 						++$stats['captured'];
 					}
 				}
@@ -201,14 +82,13 @@ class DOEC_Capture {
 					continue;
 				}
 
-				if ( $this->capture_from_order( $order, 'abandoned' ) ) {
+				if ( self::capture_from_order( $order, 'abandoned' ) ) {
 					++$stats['captured'];
 				}
 			}
 		}
 
-		// Also import unpaid pending/failed/cancelled orders with email (abandoned checkouts).
-		$abandoned_ids = $this->get_order_ids_with_email_sql( array( 'pending', 'failed', 'cancelled' ) );
+		$abandoned_ids = self::get_order_ids_with_email_sql( array( 'pending', 'failed', 'cancelled' ) );
 		foreach ( $abandoned_ids as $order_id ) {
 			$order = wc_get_order( (int) $order_id );
 			if ( ! $order || $order->is_paid() ) {
@@ -219,7 +99,7 @@ class DOEC_Capture {
 				continue;
 			}
 
-			if ( $this->capture_from_order( $order, 'abandoned' ) ) {
+			if ( self::capture_from_order( $order, 'abandoned' ) ) {
 				++$stats['captured'];
 			}
 		}
@@ -230,12 +110,10 @@ class DOEC_Capture {
 	}
 
 	/**
-	 * Fast SQL lookup for order IDs that already have a billing email.
-	 *
 	 * @param string[] $statuses Order statuses without wc- prefix.
 	 * @return int[]
 	 */
-	private function get_order_ids_with_email_sql( array $statuses ): array {
+	private static function get_order_ids_with_email_sql( array $statuses ): array {
 		global $wpdb;
 
 		$statuses = array_filter( array_map( 'sanitize_key', $statuses ) );
@@ -243,11 +121,11 @@ class DOEC_Capture {
 			return array();
 		}
 
-		$hpos_statuses = array();
+		$hpos_statuses   = array();
 		$legacy_statuses = array();
 		foreach ( $statuses as $status ) {
-			$hpos_statuses[]     = $status;
-			$legacy_statuses[]   = 'wc-' . $status;
+			$hpos_statuses[]   = $status;
+			$legacy_statuses[] = 'wc-' . $status;
 		}
 
 		$ids = array();
@@ -255,8 +133,8 @@ class DOEC_Capture {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\OrderUtil' )
 			&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
 
-			$orders_table    = $wpdb->prefix . 'wc_orders';
-			$addresses_table = $wpdb->prefix . 'wc_order_addresses';
+			$orders_table        = $wpdb->prefix . 'wc_orders';
+			$addresses_table     = $wpdb->prefix . 'wc_order_addresses';
 			$status_placeholders = implode( ', ', array_fill( 0, count( $hpos_statuses ), '%s' ) );
 
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -290,20 +168,8 @@ class DOEC_Capture {
 		return array_map( 'intval', array_filter( $ids ?: array() ) );
 	}
 
-	private function is_draft_status( string $status ): bool {
-		return in_array( $status, self::DRAFT_STATUSES, true );
-	}
-
-	private function capture_order_if_draft( WC_Order $order ): bool {
-		if ( ! $this->is_draft_status( $order->get_status() ) ) {
-			return false;
-		}
-
-		return $this->capture_from_order( $order, 'abandoned' );
-	}
-
-	private function capture_from_order( WC_Order $order, string $status ): bool {
-		$email = $this->resolve_order_email( $order );
+	private static function capture_from_order( WC_Order $order, string $status ): bool {
+		$email = self::resolve_order_email( $order );
 		if ( ! $email ) {
 			return false;
 		}
@@ -325,7 +191,7 @@ class DOEC_Capture {
 		return $lead_id > 0;
 	}
 
-	private function resolve_order_email( WC_Order $order ): string {
+	private static function resolve_order_email( WC_Order $order ): string {
 		$candidates = array(
 			$order->get_billing_email(),
 			(string) $order->get_meta( '_billing_email', true ),

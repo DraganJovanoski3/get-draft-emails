@@ -1,3 +1,12 @@
+.doec-info-list {
+	margin: 0.5rem 0 0;
+	padding-left: 1.25rem;
+}
+
+.doec-info-list li {
+	margin-bottom: 0.35rem;
+}
+
 .doec-settings-card {
 	background: #fff;
 	border: 1px solid #c3c4c7;

@@ -7,36 +7,11 @@ defined( 'ABSPATH' ) || exit;
 
 class DOEC_Export {
 
-	/** @var DOEC_Export|null */
-	private static $instance = null;
-
-	public static function instance(): DOEC_Export {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
-
-	private function __construct() {
-		add_action( 'admin_post_doec_export_csv', array( $this, 'export_csv' ) );
-	}
-
-	public function export_csv(): void {
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( esc_html__( 'Unauthorized', 'draft-orders-get-email-customers' ) );
-		}
-
-		check_admin_referer( 'doec_export_csv' );
-
-		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
-
-		$leads = DOEC_Database::instance()->get_leads_for_export(
-			array(
-				'status' => $status,
-				'search' => $search,
-			)
-		);
+	/**
+	 * @param array<string,mixed> $args
+	 */
+	public static function output_csv( array $args = array() ): void {
+		$leads = DOEC_Database::instance()->get_leads_for_export( $args );
 
 		$filename = 'draft-order-emails-' . gmdate( 'Y-m-d' ) . '.csv';
 
@@ -49,7 +24,6 @@ class DOEC_Export {
 			exit;
 		}
 
-		// UTF-8 BOM for Excel compatibility.
 		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
 		fputcsv(

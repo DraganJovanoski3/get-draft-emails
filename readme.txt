@@ -4,44 +4,29 @@ Tags: woocommerce, email marketing, abandoned checkout, draft orders
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 
 Capture customer emails from WooCommerce draft/checkout-draft orders for email marketing.
 
 == Description ==
 
-When customers use the WooCommerce block checkout, WooCommerce creates a **draft order** as soon as they reach checkout. If they enter their billing email but leave without paying, that email is stored on the draft order — but WooCommerce automatically deletes draft orders after about 24 hours.
+Standalone admin tool to export customer emails from WooCommerce draft orders.
 
-This plugin:
+This plugin is intentionally isolated:
 
-* Captures emails (and name, phone, cart total) from draft orders in real time
-* Stores them in your database so they are not lost when drafts are cleaned up
-* Marks leads as "converted" if the customer later completes the order
-* Provides an admin page under **WooCommerce → Draft Order Emails**
-* Exports leads to CSV for Mailchimp, Klaviyo, etc.
-
-== Installation ==
-
-1. Upload the plugin folder to `/wp-content/plugins/` or copy from your development folder.
-2. Activate the plugin through the **Plugins** menu in WordPress.
-3. Go to **WooCommerce → Draft Order Emails** to view and export captured leads.
-
-== Frequently Asked Questions ==
-
-= Does this work with classic checkout? =
-
-Yes. Emails are captured whenever a draft order is created or updated with billing details.
-
-= Will I get duplicate emails? =
-
-Each draft order is stored once. If the same customer abandons multiple times, you may see multiple entries (one per draft order).
-
-= Which leads should I use for marketing? =
-
-Filter by **Abandoned only** to exclude customers who later completed their purchase.
+* No WooCommerce hooks on checkout, cart, or orders
+* No background cron jobs
+* No WooCommerce compatibility registration
+* Only loads WooCommerce code when you click Sync in the admin
 
 == Changelog ==
+
+= 1.2.0 =
+* Complete isolation rewrite — zero interference with other plugins
+* Removed all checkout hooks, cron jobs, and auto-capture
+* WooCommerce is only touched during manual Sync button click
+* Simplified to a single admin tool under Tools menu
 
 = 1.1.0 =
 * Renamed to "Draft Email Collector" — no longer registers with WooCommerce compatibility system
