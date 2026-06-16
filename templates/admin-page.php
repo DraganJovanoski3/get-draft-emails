@@ -19,8 +19,50 @@ $base_url = admin_url( 'admin.php?page=doec-draft-emails' );
 	<h1><?php esc_html_e( 'Draft Order Emails', 'draft-orders-get-email-customers' ); ?></h1>
 
 	<p class="description">
-		<?php esc_html_e( 'Emails captured from customers who started checkout but did not complete their order. WooCommerce deletes draft orders after ~24 hours, so this plugin saves them here for your email marketing.', 'draft-orders-get-email-customers' ); ?>
+		<?php esc_html_e( 'Export customer emails from WooCommerce draft orders. By default this tool only runs when you click Sync — it does not hook into checkout unless you enable it below.', 'draft-orders-get-email-customers' ); ?>
 	</p>
+
+	<div class="doec-settings-card">
+		<h2><?php esc_html_e( 'Settings', 'draft-orders-get-email-customers' ); ?></h2>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'doec_save_settings' ); ?>
+			<input type="hidden" name="action" value="doec_save_settings" />
+
+			<label class="doec-setting-row">
+				<input type="checkbox" name="doec_paused" value="1" <?php checked( DOEC_Settings::is_paused() ); ?> />
+				<span>
+					<strong><?php esc_html_e( 'Pause plugin', 'draft-orders-get-email-customers' ); ?></strong><br />
+					<?php esc_html_e( 'Turns off all background activity. Use this instead of deactivating the plugin.', 'draft-orders-get-email-customers' ); ?>
+				</span>
+			</label>
+
+			<label class="doec-setting-row">
+				<input type="checkbox" name="doec_auto_capture" value="1" <?php checked( 'yes', get_option( DOEC_Settings::OPTION_AUTO_CAPTURE, 'no' ) ); ?> <?php disabled( DOEC_Settings::is_paused() ); ?> />
+				<span>
+					<strong><?php esc_html_e( 'Auto-capture on checkout', 'draft-orders-get-email-customers' ); ?></strong><br />
+					<?php esc_html_e( 'Save emails automatically when customers enter details at checkout. Leave off to only sync manually.', 'draft-orders-get-email-customers' ); ?>
+				</span>
+			</label>
+
+			<?php submit_button( __( 'Save Settings', 'draft-orders-get-email-customers' ), 'secondary', 'submit', false ); ?>
+		</form>
+
+		<?php if ( DOEC_Settings::is_paused() ) : ?>
+			<p class="doec-status doec-status--paused"><?php esc_html_e( 'Status: Paused — no WooCommerce hooks are running.', 'draft-orders-get-email-customers' ); ?></p>
+		<?php elseif ( DOEC_Settings::is_auto_capture_enabled() ) : ?>
+			<p class="doec-status doec-status--active"><?php esc_html_e( 'Status: Auto-capture is ON.', 'draft-orders-get-email-customers' ); ?></p>
+		<?php else : ?>
+			<p class="doec-status"><?php esc_html_e( 'Status: Manual mode — click Sync to import emails.', 'draft-orders-get-email-customers' ); ?></p>
+		<?php endif; ?>
+	</div>
+
+	<?php if ( ! empty( $_GET['settings_saved'] ) ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'draft-orders-get-email-customers' ); ?></p></div>
+	<?php endif; ?>
+
+	<?php if ( ! empty( $_GET['wc_missing'] ) ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'WooCommerce must be active to sync orders.', 'draft-orders-get-email-customers' ); ?></p></div>
+	<?php endif; ?>
 
 	<?php if ( ! empty( $_GET['deleted'] ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Lead deleted.', 'draft-orders-get-email-customers' ); ?></p></div>

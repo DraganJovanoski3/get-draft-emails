@@ -4,7 +4,7 @@ Tags: woocommerce, email marketing, abandoned checkout, draft orders
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 License: GPLv2 or later
 
 Capture customer emails from WooCommerce draft/checkout-draft orders for email marketing.
@@ -42,6 +42,14 @@ Each draft order is stored once. If the same customer abandons multiple times, y
 Filter by **Abandoned only** to exclude customers who later completed their purchase.
 
 == Changelog ==
+
+= 1.1.0 =
+* Renamed to "Draft Email Collector" — no longer registers with WooCommerce compatibility system
+* Removed WC tested up to header and background cron on every page load
+* Added Pause switch (turn off without deactivating plugin)
+* Auto-capture is OFF by default — manual sync only unless you enable it
+* Admin page moved to Tools → Draft Order Emails
+* Added uninstall.php for clean removal
 
 = 1.0.2 =
 * Full bulk sync for all draft orders (was limited to 100)

@@ -24,16 +24,15 @@ class DOEC_Capture {
 	}
 
 	private function __construct() {
+		if ( ! DOEC_Settings::is_auto_capture_enabled() ) {
+			return;
+		}
+
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'maybe_capture_from_order' ), 20, 2 );
 		add_action( 'woocommerce_store_api_checkout_update_order_meta', array( $this, 'maybe_capture_from_order_object' ), 20, 1 );
 		add_action( 'woocommerce_update_order', array( $this, 'on_order_updated' ), 20, 2 );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 10, 4 );
-
 		add_action( 'doec_sync_draft_orders', array( $this, 'sync_recent_drafts' ) );
-
-		if ( ! wp_next_scheduled( 'doec_sync_draft_orders' ) ) {
-			wp_schedule_event( time(), 'hourly', 'doec_sync_draft_orders' );
-		}
 	}
 
 	/**

@@ -25,8 +25,7 @@ class DOEC_Admin {
 	}
 
 	public function register_menu(): void {
-		add_submenu_page(
-			'woocommerce',
+		add_management_page(
 			__( 'Draft Order Emails', 'draft-orders-get-email-customers' ),
 			__( 'Draft Order Emails', 'draft-orders-get-email-customers' ),
 			'manage_woocommerce',
@@ -36,7 +35,7 @@ class DOEC_Admin {
 	}
 
 	public function enqueue_assets( string $hook ): void {
-		if ( 'woocommerce_page_doec-draft-emails' !== $hook ) {
+		if ( 'tools_page_doec-draft-emails' !== $hook ) {
 			return;
 		}
 
@@ -70,6 +69,11 @@ class DOEC_Admin {
 		}
 
 		check_admin_referer( 'doec_sync_now' );
+
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=doec-draft-emails&wc_missing=1' ) );
+			exit;
+		}
 
 		$stats = DOEC_Capture::instance()->sync_all_drafts();
 
