@@ -1,0 +1,84 @@
+.doec-wrap .description {
+	max-width: 720px;
+	margin-bottom: 1.5em;
+}
+
+.doec-stats {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.doec-stat-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 1rem 1.25rem;
+	min-width: 140px;
+}
+
+.doec-stat-number {
+	display: block;
+	font-size: 1.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	color: #1d2327;
+}
+
+.doec-stat-label {
+	color: #646970;
+	font-size: 0.875rem;
+}
+
+.doec-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	flex-wrap: wrap;
+}
+
+.doec-search-form {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.doec-search-form input[type="search"] {
+	min-width: 220px;
+}
+
+.doec-actions {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.doec-badge {
+	display: inline-block;
+	padding: 0.15em 0.6em;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.doec-badge--abandoned {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+.doec-badge--converted {
+	background: #edfaef;
+	color: #007017;
+}
+
+.doec-delete {
+	color: #b32d2e;
+}
+
+.doec-table td {
+	vertical-align: middle;
+}
