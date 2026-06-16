@@ -70,9 +70,21 @@ class DOEC_Admin {
 		}
 
 		check_admin_referer( 'doec_sync_now' );
-		DOEC_Capture::instance()->sync_existing_drafts();
 
-		wp_safe_redirect( admin_url( 'admin.php?page=doec-draft-emails&synced=1' ) );
+		$stats = DOEC_Capture::instance()->sync_all_drafts();
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'               => 'doec-draft-emails',
+					'synced'             => 1,
+					'doec_scanned'       => $stats['scanned'],
+					'doec_captured'      => $stats['captured'],
+					'doec_skipped'       => $stats['skipped_no_email'],
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
@@ -94,10 +106,21 @@ class DOEC_Admin {
 			)
 		);
 
-		$counts     = DOEC_Database::instance()->get_counts();
-		$total      = $result['total'];
+		$counts      = DOEC_Database::instance()->get_counts();
+		$total       = $result['total'];
 		$total_pages = (int) ceil( $total / 20 );
 
 		include DOEC_PLUGIN_DIR . 'templates/admin-page.php';
+	}
+
+	/**
+	 * Order edit URL that works with both HPOS and legacy post-based orders.
+	 */
+	public static function get_order_edit_url( int $order_id ): string {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\OrderUtil' ) ) {
+			return \Automattic\WooCommerce\Utilities\OrderUtil::get_order_admin_edit_url( $order_id );
+		}
+
+		return admin_url( 'post.php?post=' . $order_id . '&action=edit' );
 	}
 }

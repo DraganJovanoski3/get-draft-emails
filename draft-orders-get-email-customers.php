@@ -3,22 +3,39 @@
  * Plugin Name: Draft Orders – Get Customer Emails
  * Plugin URI:  https://github.com/DraganJovanoski3/get-draft-emails
  * Description: Capture email addresses from WooCommerce draft/checkout-draft orders for abandoned checkout email marketing. View and export leads from the admin.
- * Version:     1.0.0
+ * Version:     1.0.2
  * Author:      Custom
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * WC requires at least: 6.0
- * WC tested up to: 9.0
+ * WC tested up to: 10.0
  * Text Domain: draft-orders-get-email-customers
  * License:     GPL-2.0-or-later
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'DOEC_VERSION', '1.0.0' );
+define( 'DOEC_VERSION', '1.0.2' );
 define( 'DOEC_PLUGIN_FILE', __FILE__ );
 define( 'DOEC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DOEC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Declare compatibility with WooCommerce features (HPOS, block checkout).
+ *
+ * @see https://developer.woocommerce.com/docs/features/high-performance-order-storage/recipe-book/
+ */
+add_action(
+	'before_woocommerce_init',
+	static function (): void {
+		if ( ! class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			return;
+		}
+
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', DOEC_PLUGIN_FILE, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', DOEC_PLUGIN_FILE, true );
+	}
+);
 
 /**
  * Main plugin bootstrap.
@@ -60,7 +77,12 @@ final class DOEC_Plugin {
 
 	public function activate(): void {
 		require_once DOEC_PLUGIN_DIR . 'includes/class-database.php';
+		require_once DOEC_PLUGIN_DIR . 'includes/class-capture.php';
 		DOEC_Database::create_table();
+
+		if ( ! wp_next_scheduled( 'doec_sync_draft_orders' ) ) {
+			wp_schedule_event( time() + MINUTE_IN_SECONDS, 'hourly', 'doec_sync_draft_orders' );
+		}
 	}
 
 	public function deactivate(): void {

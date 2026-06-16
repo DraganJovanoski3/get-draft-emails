@@ -27,7 +27,19 @@ $base_url = admin_url( 'admin.php?page=doec-draft-emails' );
 	<?php endif; ?>
 
 	<?php if ( ! empty( $_GET['synced'] ) ) : ?>
-		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Draft orders synced.', 'draft-orders-get-email-customers' ); ?></p></div>
+		<div class="notice notice-success is-dismissible">
+			<p>
+				<?php
+				printf(
+					/* translators: 1: drafts scanned, 2: emails captured, 3: drafts without email */
+					esc_html__( 'Sync complete: %1$s draft orders scanned, %2$s emails captured, %3$s drafts had no email entered.', 'draft-orders-get-email-customers' ),
+					esc_html( isset( $_GET['doec_scanned'] ) ? (string) (int) $_GET['doec_scanned'] : '0' ),
+					esc_html( isset( $_GET['doec_captured'] ) ? (string) (int) $_GET['doec_captured'] : '0' ),
+					esc_html( isset( $_GET['doec_skipped'] ) ? (string) (int) $_GET['doec_skipped'] : '0' )
+				);
+				?>
+			</p>
+		</div>
 	<?php endif; ?>
 
 	<div class="doec-stats">
@@ -66,7 +78,7 @@ $base_url = admin_url( 'admin.php?page=doec-draft-emails' );
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
 				<?php wp_nonce_field( 'doec_sync_now' ); ?>
 				<input type="hidden" name="action" value="doec_sync_now" />
-				<button type="submit" class="button"><?php esc_html_e( 'Sync Draft Orders Now', 'draft-orders-get-email-customers' ); ?></button>
+				<button type="submit" class="button"><?php esc_html_e( 'Sync All Draft Orders', 'draft-orders-get-email-customers' ); ?></button>
 			</form>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
@@ -111,7 +123,7 @@ $base_url = admin_url( 'admin.php?page=doec-draft-emails' );
 						<td><?php echo esc_html( $lead->phone ); ?></td>
 						<td>
 							<?php if ( $lead->order_id ) : ?>
-								<a href="<?php echo esc_url( admin_url( 'post.php?post=' . (int) $lead->order_id . '&action=edit' ) ); ?>">
+								<a href="<?php echo esc_url( DOEC_Admin::get_order_edit_url( (int) $lead->order_id ) ); ?>">
 									#<?php echo esc_html( (string) $lead->order_id ); ?>
 								</a>
 							<?php else : ?>

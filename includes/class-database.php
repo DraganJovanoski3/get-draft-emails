@@ -208,7 +208,7 @@ class DOEC_Database {
 	 * @return array<int,object>
 	 */
 	public function get_leads_for_export( array $args = array() ): array {
-		$args['per_page'] = 10000;
+		$args['per_page'] = 50000;
 		$args['page']     = 1;
 		return $this->get_leads( $args )['items'];
 	}

@@ -4,7 +4,7 @@ Tags: woocommerce, email marketing, abandoned checkout, draft orders
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.2
 License: GPLv2 or later
 
 Capture customer emails from WooCommerce draft/checkout-draft orders for email marketing.
@@ -42,6 +42,17 @@ Each draft order is stored once. If the same customer abandons multiple times, y
 Filter by **Abandoned only** to exclude customers who later completed their purchase.
 
 == Changelog ==
+
+= 1.0.2 =
+* Full bulk sync for all draft orders (was limited to 100)
+* Fast SQL scan for orders with billing email (HPOS + legacy)
+* Better email detection (billing meta, logged-in customer email)
+* Also imports unpaid pending/failed/cancelled orders with email
+* Sync shows scanned/captured/skipped counts
+
+= 1.0.1 =
+* Declare WooCommerce HPOS and Cart/Checkout Blocks compatibility
+* Fix order edit links when HPOS is enabled
 
 = 1.0.0 =
 * Initial release
